@@ -1,30 +1,35 @@
 <template>
   <div class="left">
     <Card>
-       <mavon-editor
-        class="main"
-        :value="md"
-        :subfield="false"
-        :defaultOpen="'preview'"
-        :toolbarsFlag="false"
-        :boxShadow="false"
-        :transition="false"
-    ></mavon-editor>
+      <ArtcleItem v-for="item in ArtcleList" :key="item._id" :options="item"></ArtcleItem>
     </Card>
   </div>
 </template>
 
 <script>
+import request from '../../network/request'
 import Card from '../../components/HomeCpns/Card'
-import demo from '../../assets/面试题笔记.md'
+
+import ArtcleItem from './ArticleItem'
+
 
 export default {
   components: {
-    Card
+    Card,
+    ArtcleItem
   },
-  data() {
-    return {
-      md: demo
+  mounted() {
+    this.$store.commit('loading')
+  },
+  computed: {
+    ArtcleList() {
+      return this.$store.state.ArtcleList
+    }
+  },
+  methods: {
+    async getArtcle() {
+      let res = await request('/article')
+      this.ArtcleList = res.data
     }
   }
 }
@@ -33,5 +38,8 @@ export default {
 <style lang="less" scoped>
 .main{
   z-index:0;
+}
+.card{
+  margin: 0 10px;
 }
 </style>

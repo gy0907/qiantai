@@ -3,12 +3,12 @@
     <div class="container">
       <transition name="slide">
         <div v-show="!headerFlag" class="toggle1">
-          <div class="left">
+          <div class="left" @click="clickLogo">
             <div class="my">MY</div>
             <div class="blog">BLOG</div>
           </div>
-          <div class="input">
-            <input placeholder="Search what..." class="search" v-model="search" type="text" />
+          <div class="input" :class="{inputwei: inputClass}">
+            <input @keyup.enter="enterInput" @focus="inputFocus" @blur="blurInput" maxlength="20" placeholder="Search what..." class="search" v-model="search" type="text" />
             <svg class="icon" aria-hidden="true">
               <use xlink:href="#icon-sousuo" />
             </svg>
@@ -25,11 +25,15 @@
               </svg>
               <div>{{item}}</div>
             </div>
+            <svg @mouseleave="downLeave" @mouseenter="downEnter" class="icon icon-xiangxia1" aria-hidden="true">
+              <use xlink:href="#icon-xiangxia" />
+            </svg>
           </div>
         </div>
       </transition>
-      <HeaderToggle :class='{toggleactive: headerFlag}' class="toggle"></HeaderToggle>
+      <HeaderToggle @click.native="$emit('freezeHeader')" :class='{toggleactive: headerFlag}' class="toggle"></HeaderToggle>
     </div>
+
   </div>
 </template>
 
@@ -46,16 +50,80 @@ export default {
     return {
       navData: ["JS", "CSS", "VUE", "NODE"],
       iconClass: ["icon-js", "icon-css", "icon-Vue", "icon-node"],
-      activeIndex: 0,
+      activeIndex: -1,
       search: "",
-      clock: null
+      clock: null,
+      clickFlag: true,
+      timer: null,
+      inputClass: false,
     };
   },
   methods: {
     clickNavbar(index) {
-      this.activeIndex = index;
+      // 多次点击视作一次
+      clearTimeout(this.timer)
+      this.timer = setTimeout(()=>{
+        this.clickFlag = true
+      },1000)
+      if(this.clickFlag){
+        this.activeIndex = index;  // 防抖
+        this.$emit('freezeHeader') // 冻结头header切换显示
+        this.clickFlag = false
+        switch(index) {
+          case 0 : this.$store.commit('editMenu', 'js')
+          break
+          case 1 : this.$store.commit('editMenu', 'css')
+          break
+          case 2 : this.$store.commit('editMenu', 'vue')
+          break
+          case 3 : this.$store.commit('editMenu', 'node')
+          break
+        }
+      }
+    },
+    // 输入框enter了发送事件
+    enterInput(){
+      clearTimeout(this.timer)
+      this.timer = setTimeout(()=>{
+        this.clickFlag = true
+      },1000)
+      if(this.clickFlag) {
+        this.clickFlag = false
+        if(this.search.trim() != '') {
+          this.$store.commit('searchInput', this.search)
+        }
+      }
+    },
+    // 点击logo刷新主页
+    clickLogo() {
+      this.$router.go(0) 
+    },
+    // 输入框获取焦点
+    inputFocus() {
+      this.inputClass = true 
+    },
+    // 输入框失去焦点
+    blurInput() {
+      this.inputClass = false
+    },
+    // 下拉箭头焦点
+    downEnter() {
+      this.$emit('showDownMenu',true)
+    },
+    // 下拉箭头失去焦点
+    downLeave() {
+      setTimeout(()=>{
+      this.$emit('showDownMenu',false)
+      },2000)
     }
-  }
+  },
+  watch: {
+    search(newval) {
+      if(newval == '') {
+        this.$store.commit('loading')
+      }
+    }
+  },
 }
 
 </script>
@@ -72,9 +140,13 @@ export default {
   transition: all 0.25s;
   z-index: 5;
   padding: 3px 0;
-  background-color: #fff;
-  box-shadow: 0 0px 10px rgba(0, 0, 0, 0.1);
+  background-color: #404040;
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+}
+.toggle {
+  z-index: 15;
+  color: #ddd;
 }
 .toggle1 {
   display: flex;
@@ -85,33 +157,22 @@ export default {
   display: flex;
   align-items: center;
   cursor: pointer;
+  color: rgb(187, 124, 7);
 }
 
 .left {
   margin-left: 10vw;
 }
-.icon-js {
-  font-size: 24px;
-}
-.icon-css {
-  font-size: 24px;
-}
-.icon-Vue {
-  font-size: 24px;
-}
-.icon-node {
-  font-size: 24px;
-}
 .my {
-  font-size: 26px;
+  font-size: 20px;
 }
 .blog {
   background-color: var(--themecolor);
-  font-size: 26px;
+  font-size: 20px;
   border-radius: 5px;
   margin-left: 5px;
   padding: 3px;
-  color: #000;
+  color: #404040;
   transition: 0.5s;
 }
 .left:hover .blog {
@@ -120,8 +181,9 @@ export default {
 .right {
   font-size: 20px;
   font-weight: 400;
-  margin-right: 10vw;
+  margin-right: 7vw;
   text-align: center;
+  position: relative;
   > div {
     margin-left: 2vw;  
     display: flex;
@@ -161,6 +223,14 @@ export default {
     left: 0%;
     transition: 0.3s all;
   }
+  .icon-xiangxia1 {
+    margin-left: 2vw;
+    font-size: 16px;
+  }
+  .icon-xiangxia1:hover {
+    color: var(--themecolor);
+    transition: 0.3s all;
+  }
 }
 .input {
   position: relative;
@@ -182,9 +252,19 @@ export default {
   transition: all 0.3s;
   transform-origin: left;
   font-size: 12px;
+  position: relative;
 }
 .search:focus {
   width: 200px;
+}
+.inputwei::before{
+  content: '按下回车即可搜索哦~';
+  width: 100px;
+  z-index: 1000;
+  color: #888;
+  position: absolute;
+  right: -105px;
+  font-size: 13PX;
 }
 .toggle {
   position: absolute;

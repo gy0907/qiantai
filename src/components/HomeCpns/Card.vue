@@ -18,6 +18,7 @@ export default {
   transform-origin: center center;
   border-radius: 5px;
   padding: 20px;
+  margin-bottom: 50px;
 }
 .card:hover {
   box-shadow: 0 0 4px rgba(0, 0, 0, .1);
